@@ -185,7 +185,7 @@ group by productData.productId;""".format(tuple(value))
 
 @app.route('/')
 def hello():
-    x = {'userId': 1}
+    x = {'updated_file': 1}
     return jsonify(x)
 
 
