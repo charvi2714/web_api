@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, render_template
 import json
 import pymysql as mysql
 from flask_cors import CORS
@@ -154,9 +154,12 @@ def getCartList():
                 product_name = j[3]
                 product_image = j[5].split(',')[0]
                 if 'cart' in response:
-                    response['cart'].append({'ProductSize':size_list[i], 'productId': product_id, 'productPrice': price, 'productName': product_name, 'productImage': product_image})
+                    response['cart'].append(
+                        {'ProductSize': size_list[i], 'productId': product_id, 'productPrice': price,
+                         'productName': product_name, 'productImage': product_image})
                 else:
-                    response['cart'] = [{'ProductSize':size_list[i], 'productId': product_id, 'productPrice': price, 'productName': product_name, 'productImage': product_image}]
+                    response['cart'] = [{'ProductSize': size_list[i], 'productId': product_id, 'productPrice': price,
+                                         'productName': product_name, 'productImage': product_image}]
                 total += j[2]
     response['sub_total'] = total
     response['total'] = total + 40
@@ -181,6 +184,17 @@ group by productData.productId;""".format(tuple(value))
     connection_obj.close()
     print(result)
     return "check"
+
+
+def dir_last_updated(folder):
+    return str(max(os.path.getmtime(os.path.join(root_path, f))
+                   for root_path, dirs, files in os.walk(folder)
+                   for f in files))
+
+
+@app.route('/test/html')
+def test_html():
+    return render_template("index.html", last_updated=dir_last_updated('./static'))
 
 
 @app.route('/')
