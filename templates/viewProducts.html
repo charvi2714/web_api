@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Products</title>
+    <link rel="stylesheet" href="/static/viewProductstyling.css?u={{ last_updated }}">
+</head>
+<body>
+{% extends "mainInheritancePage.html" %}
+ {% block content %}
+     <table  class="table table-striped table-hover table-responsive">
+     <tr>
+         <th>Product Id</th>
+         <th>Category Name</th>
+         <th>Product Name</th>
+         <th>Product Price</th>
+         <th>Product Image</th>
+     </tr>
+         {% for i in range(0,len) %}
+     <tr>
+         <td>{{ result[i][0] }}</td>
+         <td>{{ result[i][6] }}</td>
+         <td>{{ result[i][3]}}</td>
+         <td>₹ {{ result[i][2] }}</td>
+         <td>
+             <img class="img-thumbnail" src={{ images[i] }} alt="ProductImages">
+         </td>
+     </tr>
+     {% endfor %}
+     </table>
+{% endblock %}
+</body>
+</html>

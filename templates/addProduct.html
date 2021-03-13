@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add product</title>
+    <link rel="stylesheet" href="/static/addproductstyling.css?u={{ last_updated }}">
+    <script  type="text/javascript" src="/static/support-package.js?u={{ last_updated }}"></script>
+</head>
+<body>
+{% extends "mainInheritancePage.html" %}
+ {% block content %}
+<h3>Add Product Details</h3>
+
+<div class="container">
+  <form action=" " method="post" enctype=multipart/form-data>
+    <label for="pname">Product Name</label>
+    <input type="text" id="pname" name="productName" placeholder="Name of the product.." required>
+
+    <label for="Price">₹ Price</label>
+    <input type="number" id="price" name="price" placeholder="Enter the ₹ price of the product" required>
+
+    <label for="productCategory">Product Category</label>
+    <select id="productCategory" name="productCategory" required>
+        {% for i in range(0,len) %}
+      <option value={{ category[i][0] }}>{{ category[i][1] }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="productDescription">Product Description</label>
+    <textarea id="productDescription" name="productDescription" placeholder="Enter the description of the product so that customer will fell in love..." style="height:200px" required></textarea>
+      <br>
+      <label for="images">Upload beautiful Images of dress</label>
+      <br>
+      <br>
+    <input type="file" name="images" multiple >
+      <br>
+      <br>
+    <input type="submit" value="Submit">
+  </form>
+</div>
+{% endblock %}
+
+</body>
+</html>

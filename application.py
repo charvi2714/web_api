@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, request, Response, render_template
+from flask import Flask, jsonify, request, Response, render_template, flash, redirect, url_for
 import json
+from werkzeug.utils import secure_filename
 import pymysql as mysql
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -13,8 +14,9 @@ import flask
 application = app = Flask(__name__)
 # CORS(app, resources={r"/*": {"origins": "*"}})
 CORS(app)
-# ACCESS_KEY_ID = "AKIA5B7QKZSSL3ENLXG5"
-# ACCESS_SECRET_KEY = "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"
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+UPLOAD_FOLDER = '.'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 host_url = 'testdb.cfhyep7ezte5.ap-south-1.rds.amazonaws.com'
 db_name = 'roshana_db'
@@ -186,6 +188,8 @@ group by productData.productId;""".format(tuple(value))
     return "check"
 
 
+# Internal website server code starts here !!!!!
+
 def dir_last_updated(folder):
     return str(max(os.path.getmtime(os.path.join(root_path, f))
                    for root_path, dirs, files in os.walk(folder)
@@ -195,6 +199,99 @@ def dir_last_updated(folder):
 @app.route('/test/html')
 def test_html():
     return render_template("index.html", last_updated=dir_last_updated('./static'))
+
+
+@app.route('/no/one/is/allowed/here/add/product', methods=['POST', 'GET'])
+def add_product():
+    if flask.request.method == 'GET':
+        connection_obj = db_connection(host_url, db_name, user, password)
+        cursor = connection_obj.cursor()
+        sql = "SELECT * FROM categories;"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        cursor.close()
+        connection_obj.close()
+        return render_template("addProduct.html", last_updated=dir_last_updated('./static'), category=result,
+                               len=len(result))
+    else:
+        productName = request.form.get('productName')
+        price = request.form.get('price')
+        productCategory = request.form.get('productCategory')
+        productDescription = request.form.get('productDescription')
+        connection_obj = db_connection(host_url, db_name, user, password)
+        cursor = connection_obj.cursor()
+        sql = "insert into productData (categoryId, productName, productDescription, productPrice) values (%s, %s, %s, %s);"
+        value = (productCategory, productName, productDescription, price)
+        cursor.execute(sql, value)
+        connection_obj.commit()
+        files = flask.request.files.getlist("images")
+        ACCESS_KEY_ID = 'AKIAIQXZ3KXIV32JCYZA'
+        ACCESS_SECRET_KEY = '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'
+        BUCKET_NAME = 'anhsor'
+        sql = "select productId from productData where productId = (select max(productId) from productData);"
+        cursor.execute(sql)
+        result = cursor.fetchall()
+        print(result)
+        s3 = boto3.resource(
+            's3',
+            aws_access_key_id=ACCESS_KEY_ID,
+            aws_secret_access_key=ACCESS_SECRET_KEY,
+            config=Config(signature_version='s3v4')
+        )
+
+        print(files)
+
+        for file in files:
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
+            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            ext = file.filename.split(".")
+            ext = ext[::-1]
+            print(ext)
+
+            FILE_NAME = path
+            data = open(FILE_NAME, 'rb')
+
+            # FILE_NAME = str(uuid.uuid4()) + "." + ext[1]
+            FILE_NAME = str(uuid.uuid4()) + str(result[0][0]) + "." + ext[0]
+            # print(FILE_NAME)
+            content_type = request.mimetype
+            s3.Bucket(BUCKET_NAME).put_object(Key=FILE_NAME, Body=data, ACL='public-read')
+            data.close()
+            sql = "insert into productImages (productId, URL) values (%s, %s);"
+            url = "https://anhsor.s3.us-east-2.amazonaws.com/" + FILE_NAME
+            value = (result[0][0], url)
+            cursor.execute(sql, value)
+            connection_obj.commit()
+            os.remove(path)
+            print('done')
+        cursor.close()
+        connection_obj.close()
+        flash('product Added')
+        return redirect(url_for('test_html'))
+
+
+@app.route('/no/one/is/allowed/here/view/products', methods=['POST', 'GET'])
+def viewproducts():
+    connection_obj = db_connection(host_url, db_name, user, password)
+    cursor = connection_obj.cursor()
+    sql = "select productData.productId, productData.categoryId, productData.productPrice, productData.productName, productData.productDescription, GROUP_CONCAT( productImages.URL ) as 'URLS', categories.categoryName   \
+               from productData \
+               inner join  productImages on (productData.productId = productImages.productId) \
+               inner join categories on (productData.categoryId = categories.categoryId)\
+               group by productData.productId;"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    images = []
+    for i in result:
+        temp = i[5].split(',')
+        images.append(temp[0])
+    return render_template('viewProducts.html', last_updated=dir_last_updated('./static'), result=result, len=len(result), images=images)
+
+
+@app.route('/somanytesting', methods=['POST', 'GET'])
+def somanytesting():
+    x = {'updated_file': 2}
+    return jsonify(x)
 
 
 @app.route('/')
